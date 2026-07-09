@@ -225,11 +225,16 @@
   </header>
 
   <div class="job-card">
-    <h2>Área da obra (opcional)</h2>
-    <p class="hint">Preencha para ver também o custo total da obra, além do custo por m².</p>
+    <h2>Dados da obra (opcional)</h2>
+    <p class="hint">Preencha para ver também o custo total da obra e ajustar o rendimento pela perda esperada de material.</p>
     <div class="field">
       <label for="area">Área a pintar (m²)</label>
       <input type="number" id="area" placeholder="Ex: 120" step="0.1" min="0" oninput="render()">
+    </div>
+    <div class="field">
+      <label for="perda">Percentual de perda (%)</label>
+      <input type="number" id="perda" placeholder="Ex: 10" step="0.1" min="0" max="95" oninput="render()">
+      <small>Desconta do rendimento nominal — cobre respingo, diluição, textura da parede, retrabalho etc.</small>
     </div>
   </div>
 
@@ -347,6 +352,9 @@ function render(){
   const count = document.getElementById('count');
   const areaInput = parseFloat(document.getElementById('area').value);
   const area = (!isNaN(areaInput) && areaInput > 0) ? areaInput : null;
+  const perdaInput = parseFloat(document.getElementById('perda').value);
+  const perdaPct = (!isNaN(perdaInput) && perdaInput > 0) ? Math.min(perdaInput, 95) : 0;
+  const fatorPerda = 1 - (perdaPct / 100);
   container.innerHTML = '';
 
   if(products.length === 0){
@@ -356,10 +364,11 @@ function render(){
   }
 
   const withCost = products.map(p => {
-    const custoPorM2 = p.rendimento !== null ? p.valor / p.rendimento : null;
+    const rendimentoEfetivo = p.rendimento !== null ? p.rendimento * fatorPerda : null;
+    const custoPorM2 = rendimentoEfetivo !== null ? p.valor / rendimentoEfetivo : null;
     const custoPorM2Ano = (custoPorM2 !== null && p.durabilidade !== null) ? custoPorM2 / p.durabilidade : null;
     const custoTotalObra = (area && custoPorM2 !== null) ? custoPorM2 * area : null;
-    return { ...p, custoPorM2, custoPorM2Ano, custoTotalObra };
+    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra };
   });
 
   const sortKey = p => p.custoPorM2Ano !== null ? p.custoPorM2Ano : Infinity;
@@ -372,6 +381,7 @@ function render(){
   count.textContent = (products.length === 1 ? '1 produto' : products.length + ' produtos')
     + ' comparados'
     + (ranked.length ? ' — ordenados do melhor para o pior custo por m² ao ano' : '')
+    + (perdaPct > 0 ? ` · rendimento ajustado em ${fmtNum(perdaPct,1)}% de perda` : '')
     + (area ? ` (obra de ${fmtNum(area,1)} m²).` : '.');
 
   const table = document.createElement('div');
@@ -381,7 +391,7 @@ function render(){
       <thead>
         <tr>
           <th>Produto</th>
-          <th>Rendimento</th>
+          <th>Rendimento${perdaPct > 0 ? ' (com perda)' : ''}</th>
           <th>Durabilidade</th>
           <th>Valor</th>
           <th>Custo/m²</th>
@@ -408,9 +418,10 @@ function render(){
         <div class="prod-name">${escapeHtml(p.nome)}</div>
         <div class="prod-pack">${escapeHtml(p.embalagem || '')}</div>
         ${p.id === bestId ? '<span class="badge">Melhor custo-benefício</span>' : ''}
-        ${p.custoPorM2Ano === null ? '<span class="badge na">Sem durabilidade — não ranqueado</span>' : ''}
       </td>
-      <td class="num">${p.rendimento !== null ? fmtNum(p.rendimento,1) + ' m²' : `<span class="muted">${escapeHtml(p.rendimentoTexto)}</span>`}</td>
+      <td class="num">${p.rendimentoEfetivo !== null
+          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + (perdaPct > 0 ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
+          : `<span class="muted">${escapeHtml(p.rendimentoTexto)}</span>`}</td>
       <td class="num">${p.durabilidade !== null ? fmtNum(p.durabilidade,1) + (p.durabilidade === 1 ? ' ano' : ' anos') : '<span class="muted">não aplicável</span>'}</td>
       <td class="num">${fmtBRL(p.valor)}</td>
       <td class="num">${p.custoPorM2 !== null ? fmtBRL(p.custoPorM2) : '<span class="muted">—</span>'}</td>
