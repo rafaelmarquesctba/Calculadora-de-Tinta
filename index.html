@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de custo-benefício de tintas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #EEF1E6;
+    --paper: #FFFFFF;
+    --ink: #1F2A22;
+    --ink-soft: #5B655A;
+    --line: #D9DFD1;
+    --mustard: #C1872A;
+    --mustard-dark: #8F631E;
+    --teal: #2F7A63;
+    --teal-bg: #E3F0EA;
+    --teal-dark: #1D5544;
+    --brick: #A3432D;
+    --brick-bg: #F6E6E1;
+    --brick-dark: #7A3120;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:48px 20px 80px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+  header{margin-bottom:28px;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--mustard-dark);
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:32px;
+    margin:0 0 10px;
+    line-height:1.15;
+  }
+  .sub{color:var(--ink-soft);font-size:15px;max-width:660px;line-height:1.5;margin:0;}
+
+  .job-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 24px;
+    margin:28px 0;
+    display:flex;
+    align-items:end;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .job-card h2{
+    width:100%;
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:16px;
+    margin:0 0 2px;
+  }
+  .job-card .hint{
+    width:100%;
+    color:var(--ink-soft);
+    font-size:12.5px;
+    margin:0 0 4px;
+  }
+  .job-card .field{flex:1 1 220px;margin-bottom:0;}
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .card h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:17px;
+    margin:0 0 18px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  .field{margin-bottom:16px;}
+  .field small{display:block;color:var(--ink-soft);font-size:11.5px;margin-top:4px;line-height:1.4;}
+  input[type=number],select{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:#FBFBF8;
+  }
+  select:disabled{color:var(--ink-soft);background:#F3F3EF;}
+  input:focus,select:focus{outline:none;border-color:var(--mustard);box-shadow:0 0 0 3px rgba(193,135,42,0.15);}
+
+  .formrow{
+    display:grid;
+    grid-template-columns:1.8fr 1.3fr 1fr 1fr auto;
+    gap:12px;
+    align-items:end;
+  }
+  @media (max-width:900px){.formrow{grid-template-columns:1fr 1fr;}}
+
+  .readout{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13.5px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#F3F3EF;
+    color:var(--ink-soft);
+    min-height:20px;
+  }
+  .readout.na{color:var(--brick-dark);}
+
+  button.add{
+    padding:10px 18px;
+    border:none;
+    border-radius:8px;
+    background:var(--mustard);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    height:38px;
+    white-space:nowrap;
+  }
+  button.add:hover{background:var(--mustard-dark);}
+  .err{color:var(--brick);font-size:12.5px;margin-top:10px;display:none;}
+
+  .list h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:17px;
+    margin:0 0 4px;
+  }
+  .list .count{color:var(--ink-soft);font-size:13px;margin:0 0 18px;}
+
+  .empty{
+    border:1px dashed var(--line);
+    border-radius:14px;
+    padding:40px 24px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--ink-soft);
+    padding:0 10px 10px;
+    font-weight:500;
+  }
+  tbody tr{background:var(--paper);}
+  tbody td{
+    padding:14px 10px;
+    border-top:1px solid var(--line);
+    vertical-align:middle;
+  }
+  tbody tr.best td:first-child{border-left:3px solid var(--teal);}
+  tbody tr.worst td:first-child{border-left:3px solid var(--brick);}
+  tbody tr.na{opacity:0.75;}
+  .prod-name{font-family:'Fraunces',serif;font-weight:600;font-size:14.5px;}
+  .prod-pack{color:var(--ink-soft);font-size:12px;}
+  .num{font-family:'JetBrains Mono',monospace;}
+  .muted{color:var(--ink-soft);}
+  .highlight{font-weight:600;color:var(--teal-dark);}
+  .badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    background:var(--teal-bg);
+    color:var(--teal-dark);
+    padding:2px 7px;
+    border-radius:100px;
+    white-space:nowrap;
+    display:inline-block;
+    margin-top:3px;
+  }
+  .badge.na{background:var(--brick-bg);color:var(--brick-dark);}
+  .del{
+    border:none;background:none;color:var(--ink-soft);cursor:pointer;
+    font-size:12.5px;padding:4px 6px;border-radius:6px;
+  }
+  .del:hover{background:var(--brick-bg);color:var(--brick-dark);}
+  .scroll-x{overflow-x:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Tintas Renner</p>
+    <h1>Calculadora de custo-benefício por m²/ano</h1>
+    <p class="sub">Escolha o produto e a embalagem do catálogo, informe o preço pago, e compare o custo por m² e o custo anualizado — a durabilidade vem automaticamente da ficha de cada produto.</p>
+  </header>
+
+  <div class="job-card">
+    <h2>Área da obra (opcional)</h2>
+    <p class="hint">Preencha para ver também o custo total da obra, além do custo por m².</p>
+    <div class="field">
+      <label for="area">Área a pintar (m²)</label>
+      <input type="number" id="area" placeholder="Ex: 120" step="0.1" min="0" oninput="render()">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Adicionar produto</h2>
+    <div class="formrow">
+      <div class="field">
+        <label for="produtoSelect">Produto</label>
+        <select id="produtoSelect" onchange="onProdutoChange()"></select>
+      </div>
+      <div class="field">
+        <label for="embalagemSelect">Embalagem</label>
+        <select id="embalagemSelect" onchange="onEmbalagemChange()"></select>
+      </div>
+      <div class="field">
+        <label>Durabilidade</label>
+        <div class="readout" id="durabilidadeOut">—</div>
+      </div>
+      <div class="field">
+        <label for="valor">Valor pago (R$)</label>
+        <input type="number" id="valor" placeholder="Ex: 599" step="0.01" min="0">
+      </div>
+      <button class="add" onclick="addProduct()">Adicionar</button>
+    </div>
+    <p class="err" id="err">Selecione o produto e a embalagem, e informe um valor válido.</p>
+  </div>
+
+  <div class="list">
+    <h2>Comparação</h2>
+    <p class="count" id="count">Nenhum produto adicionado ainda.</p>
+    <div id="items"></div>
+  </div>
+</div>
+
+<script>
+const catalog = [{"produto":"Rekolor Gold Supercobertura","durabilidade":5.0,"embalagens":[{"label":"800 ml","rendimento":7.5,"rendimentoTexto":"Até 7,5 m²"},{"label":"3,2 L","rendimento":30.0,"rendimentoTexto":"Até 30 m²"},{"label":"16 L","rendimento":150.0,"rendimentoTexto":"Até 150 m²"}]},{"produto":"Hiperfosco","durabilidade":5.0,"embalagens":[{"label":"800 ml","rendimento":5.5,"rendimentoTexto":"Até 5,5 m²"},{"label":"900 ml","rendimento":6.0,"rendimentoTexto":"Até 6 m²"},{"label":"3,2 L","rendimento":22.0,"rendimentoTexto":"Até 22 m²"},{"label":"3,6 L","rendimento":24.0,"rendimentoTexto":"Até 24 m²"},{"label":"16 L","rendimento":110.0,"rendimentoTexto":"Até 110 m²"},{"label":"18 L","rendimento":120.0,"rendimentoTexto":"Até 120 m²"}]},{"produto":"Rekolor Pró Fosco","durabilidade":5.0,"embalagens":[{"label":"800 ml","rendimento":6.0,"rendimentoTexto":"Até 6 m²"},{"label":"3,2 L","rendimento":25.0,"rendimentoTexto":"Até 25 m²"},{"label":"3,6 L","rendimento":28.0,"rendimentoTexto":"Até 28 m²"},{"label":"16 L","rendimento":126.0,"rendimentoTexto":"Até 126 m²"},{"label":"18 L","rendimento":140.0,"rendimentoTexto":"Até 140 m²"}]},{"produto":"Rekolor Gold Superlavável","durabilidade":10.0,"embalagens":[{"label":"800 ml","rendimento":6.0,"rendimentoTexto":"Até 6 m²"},{"label":"3,2 L","rendimento":25.0,"rendimentoTexto":"Até 25 m²"},{"label":"16 L","rendimento":125.0,"rendimentoTexto":"Até 125 m²"}]},{"produto":"Rekolor Gold Superresistência","durabilidade":10.0,"embalagens":[{"label":"800 ml","rendimento":6.0,"rendimentoTexto":"Até 6 m²"},{"label":"3,2 L","rendimento":25.0,"rendimentoTexto":"Até 25 m²"},{"label":"16 L","rendimento":125.0,"rendimentoTexto":"Até 125 m²"}]},{"produto":"Rekolor Pró Acetinado","durabilidade":5.0,"embalagens":[{"label":"800 ml","rendimento":4.5,"rendimentoTexto":"Até 4,5 m²"},{"label":"3,2 L","rendimento":18.0,"rendimentoTexto":"Até 18 m²"},{"label":"3,6 L","rendimento":20.0,"rendimentoTexto":"Até 20 m²"},{"label":"16 L","rendimento":90.0,"rendimentoTexto":"Até 90 m²"},{"label":"18 L","rendimento":100.0,"rendimentoTexto":"Até 100 m²"}]},{"produto":"Rekolor Pró Semibrilho","durabilidade":10.0,"embalagens":[{"label":"800 ml","rendimento":4.5,"rendimentoTexto":"Até 4,5 m²"},{"label":"900 ml","rendimento":5.0,"rendimentoTexto":"Até 5 m²"},{"label":"3,2 L","rendimento":18.0,"rendimentoTexto":"Até 18 m²"},{"label":"3,6 L","rendimento":20.0,"rendimentoTexto":"Até 20 m²"},{"label":"16 L","rendimento":90.0,"rendimentoTexto":"Até 90 m²"},{"label":"18 L","rendimento":100.0,"rendimentoTexto":"Até 100 m²"}]},{"produto":"Frentes & Fachadas Emborrachada","durabilidade":5.0,"embalagens":[{"label":"3,2 L","rendimento":15.0,"rendimentoTexto":"Até 15 m²"},{"label":"3,6 L","rendimento":17.0,"rendimentoTexto":"Até 17 m²"},{"label":"16 L","rendimento":77.0,"rendimentoTexto":"Até 77 m²"},{"label":"18 L","rendimento":87.0,"rendimentoTexto":"Até 87 m²"}]},{"produto":"Frentes & Fachadas Elástica Fosco","durabilidade":10.0,"embalagens":[{"label":"3,2 L","rendimento":15.0,"rendimentoTexto":"Até 15 m²"},{"label":"3,6 L","rendimento":17.0,"rendimentoTexto":"Até 17 m²"},{"label":"16 L","rendimento":75.0,"rendimentoTexto":"Até 75 m²"},{"label":"18 L","rendimento":85.0,"rendimentoTexto":"Até 85 m²"}]},{"produto":"Frentes & Fachadas Elástica Semibrilho","durabilidade":10.0,"embalagens":[{"label":"3,2 L","rendimento":12.5,"rendimentoTexto":"Até 12,5 m²"},{"label":"3,6 L","rendimento":14.0,"rendimentoTexto":"Até 14 m²"},{"label":"16 L","rendimento":62.0,"rendimentoTexto":"Até 62 m²"},{"label":"18 L","rendimento":70.0,"rendimentoTexto":"Até 70 m²"}]},{"produto":"Ducryl Rende Mais","durabilidade":3.0,"embalagens":[{"label":"800 ml (cores)","rendimento":6.5,"rendimentoTexto":"Até 6,5 m²"},{"label":"800 ml (bases)","rendimento":5.7,"rendimentoTexto":"Até 5,7 m²"},{"label":"900 ml","rendimento":6.5,"rendimentoTexto":"Até 6,5 m²"},{"label":"3,2 L (cores)","rendimento":26.0,"rendimentoTexto":"Até 26 m²"},{"label":"3,2 L (bases)","rendimento":23.0,"rendimentoTexto":"Até 23 m²"},{"label":"3,6 L","rendimento":26.0,"rendimentoTexto":"Até 26 m²"},{"label":"16 L","rendimento":115.0,"rendimentoTexto":"Até 115 m²"},{"label":"18 L","rendimento":130.0,"rendimentoTexto":"Até 130 m²"}]},{"produto":"Ducryl Brilha Mais","durabilidade":3.0,"embalagens":[{"label":"800 ml (cores)","rendimento":4.2,"rendimentoTexto":"Até 4,2 m²"},{"label":"800 ml (bases)","rendimento":3.7,"rendimentoTexto":"Até 3,7 m²"},{"label":"900 ml","rendimento":17.0,"rendimentoTexto":"Até 17 m²"},{"label":"3,2 L (cores)","rendimento":17.0,"rendimentoTexto":"Até 17 m²"},{"label":"3,2 L (bases)","rendimento":15.0,"rendimentoTexto":"Até 15 m²"},{"label":"3,6 L","rendimento":17.0,"rendimentoTexto":"Até 17 m²"},{"label":"16 L","rendimento":75.0,"rendimentoTexto":"Até 75 m²"},{"label":"18 L","rendimento":85.0,"rendimentoTexto":"Até 85 m²"}]},{"produto":"Ducryl Máximo Desempenho","durabilidade":3.0,"embalagens":[{"label":"3,2 L","rendimento":20.0,"rendimentoTexto":"Até 20 m²"},{"label":"16 L","rendimento":100.0,"rendimentoTexto":"Até 100 m²"}]},{"produto":"Profissional ACR","durabilidade":1.0,"embalagens":[{"label":"3,2 L","rendimento":12.5,"rendimentoTexto":"Até 12,5 m²"},{"label":"3,6 L","rendimento":14.0,"rendimentoTexto":"Até 14 m²"},{"label":"16 L","rendimento":62.0,"rendimentoTexto":"Até 62 m²"}]},{"produto":"Adornare Textura Lisa","durabilidade":null,"embalagens":[{"label":"5 kg","rendimento":5.0,"rendimentoTexto":"Até 5 m²/demão"},{"label":"25 kg","rendimento":25.0,"rendimentoTexto":"Até 25 m²/demão"}]},{"produto":"Adornare Textura Média","durabilidade":null,"embalagens":[{"label":"25 kg","rendimento":25.0,"rendimentoTexto":"Até 25 m²/demão"}]},{"produto":"Adornare Textura Rústica","durabilidade":null,"embalagens":[{"label":"4,8 kg","rendimento":2.4,"rendimentoTexto":"Até 2,4 m²/demão"},{"label":"24 kg","rendimento":12.0,"rendimentoTexto":"Até 12 m²/demão"}]},{"produto":"Cimento Queimado","durabilidade":3.0,"embalagens":[{"label":"5 kg","rendimento":11.0,"rendimentoTexto":"Até 11 m²/demão"}]},{"produto":"Pisos","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":4.5,"rendimentoTexto":"Até 4,5 m²"},{"label":"3,6 L","rendimento":18.0,"rendimentoTexto":"Até 18 m²"},{"label":"18 L","rendimento":90.0,"rendimentoTexto":"Até 90 m²"}]},{"produto":"Extra Esmalte","durabilidade":10.0,"embalagens":[{"label":"225 ml","rendimento":4.75,"rendimentoTexto":"Até 4,75 m²/demão"},{"label":"800 ml","rendimento":17.0,"rendimentoTexto":"Até 17 m²"},{"label":"900 ml","rendimento":19.0,"rendimentoTexto":"Até 19 m²"},{"label":"3,2 L","rendimento":67.0,"rendimentoTexto":"Até 67 m²"},{"label":"3,6 L","rendimento":75.0,"rendimentoTexto":"Até 75 m²"}]},{"produto":"Extra Esmalte Transparente","durabilidade":3.0,"embalagens":[{"label":"900 ml","rendimento":3.75,"rendimentoTexto":"Até 3,75 m²"},{"label":"3,6 L","rendimento":15.0,"rendimentoTexto":"Até 15 m²"}]},{"produto":"Esmalte Ultra Rápido","durabilidade":10.0,"embalagens":[{"label":"800 ml","rendimento":13.0,"rendimentoTexto":"Até 13 m²"},{"label":"900 ml","rendimento":15.0,"rendimentoTexto":"Até 15 m²"},{"label":"3,2 L","rendimento":53.0,"rendimentoTexto":"Até 53 m²"},{"label":"3,6 L","rendimento":60.0,"rendimentoTexto":"Até 60 m²"}]},{"produto":"Esmalte Antiferrugem","durabilidade":10.0,"embalagens":[{"label":"2,4 L","rendimento":32.0,"rendimentoTexto":"Até 32 m²"}]},{"produto":"Esmalte Dulit","durabilidade":5.0,"embalagens":[{"label":"800 ml","rendimento":11.25,"rendimentoTexto":"Até 11,25 m²"},{"label":"900 ml","rendimento":12.5,"rendimentoTexto":"Até 12,5 m²"},{"label":"3,2 L","rendimento":45.0,"rendimentoTexto":"Até 45 m²"},{"label":"3,6 L","rendimento":50.0,"rendimentoTexto":"Até 50 m²"}]},{"produto":"Massa Corrida PVA","durabilidade":null,"embalagens":[{"label":"1,4 kg","rendimento":3.0,"rendimentoTexto":"até 3 m²"},{"label":"5,5 kg","rendimento":12.0,"rendimentoTexto":"até 12 m²"},{"label":"25 kg","rendimento":55.0,"rendimentoTexto":"até 55 m²"}]},{"produto":"Massa Acrílica","durabilidade":null,"embalagens":[{"label":"1,4 kg","rendimento":3.0,"rendimentoTexto":"até 3 m²"},{"label":"5,5 kg","rendimento":12.0,"rendimentoTexto":"até 12 m²"},{"label":"25 kg","rendimento":55.0,"rendimentoTexto":"até 55 m²"}]},{"produto":"Selador Acrílico","durabilidade":null,"embalagens":[{"label":"3,6 L","rendimento":40.0,"rendimentoTexto":"até 40 m²"},{"label":"16 L","rendimento":180.0,"rendimentoTexto":"até 180 m²"}]},{"produto":"Fundo Preparador de Paredes","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":7.0,"rendimentoTexto":"até 7 m²"},{"label":"3,6 L","rendimento":30.0,"rendimentoTexto":"até 30 m²"},{"label":"16 L","rendimento":130.0,"rendimentoTexto":"até 130 m²"}]},{"produto":"Spray Uso Geral","durabilidade":null,"embalagens":[{"label":"400 ml","rendimento":null,"rendimentoTexto":"conforme superfície"}]},{"produto":"Spray Alta Temperatura","durabilidade":null,"embalagens":[{"label":"400 ml","rendimento":null,"rendimentoTexto":"conforme superfície"}]},{"produto":"Spray Metálico","durabilidade":null,"embalagens":[{"label":"400 ml","rendimento":null,"rendimentoTexto":"conforme superfície"}]},{"produto":"Spray Verniz","durabilidade":null,"embalagens":[{"label":"400 ml","rendimento":null,"rendimentoTexto":"conforme superfície"}]},{"produto":"Spray Primer","durabilidade":null,"embalagens":[{"label":"400 ml","rendimento":null,"rendimentoTexto":"conforme superfície"}]},{"produto":"Massa para Madeira","durabilidade":null,"embalagens":[{"label":"900 g","rendimento":null,"rendimentoTexto":"conforme aplicação"},{"label":"3,6 kg","rendimento":null,"rendimentoTexto":"conforme aplicação"}]},{"produto":"Fundo Branco Fosco para Madeira","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":12.0,"rendimentoTexto":"até 12 m²/demão"},{"label":"3,6 L","rendimento":48.0,"rendimentoTexto":"até 48 m²/demão"}]},{"produto":"Zarcão","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":12.0,"rendimentoTexto":"até 12 m²/demão"},{"label":"3,6 L","rendimento":48.0,"rendimentoTexto":"até 48 m²/demão"}]},{"produto":"Verniz Marítimo","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":19.0,"rendimentoTexto":"até 19 m²/demão"},{"label":"3,6 L","rendimento":75.0,"rendimentoTexto":"até 75 m²/demão"}]},{"produto":"Stain Protetor","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":19.0,"rendimentoTexto":"até 19 m²/demão"},{"label":"3,6 L","rendimento":75.0,"rendimentoTexto":"até 75 m²/demão"}]},{"produto":"Complementos (Fundos e Preparadores)","durabilidade":null,"embalagens":[{"label":"","rendimento":null,"rendimentoTexto":"Conforme especificação do produto"}]},{"produto":"Demais produtos spray","durabilidade":null,"embalagens":[{"label":"400 ml","rendimento":null,"rendimentoTexto":"conforme superfície e modo de aplicação"}]},{"produto":"Piscinas – Esmalte PU","durabilidade":10.0,"embalagens":[{"label":"","rendimento":40.0,"rendimentoTexto":"Até 40 m² por demão"}]},{"produto":"Polipar Multiuso – Esmalte PU","durabilidade":10.0,"embalagens":[{"label":"Esmalte PU","rendimento":40.0,"rendimentoTexto":"Até 40 m² por demão"},{"label":"Verniz","rendimento":18.0,"rendimentoTexto":"Até 18 m² acabado"}]},{"produto":"Aquabloc – Bloqueador de Umidade","durabilidade":null,"embalagens":[{"label":"3,6 L","rendimento":25.0,"rendimentoTexto":"Até 25 m² por demão"}]},{"produto":"Fundo Preparador de Paredes (Fachadas)","durabilidade":null,"embalagens":[{"label":"3,2 L","rendimento":48.0,"rendimentoTexto":"Até 48 m² por demão"},{"label":"16 L","rendimento":240.0,"rendimentoTexto":"Até 240 m² por demão"}]},{"produto":"Frentes & Fachadas Selador Flexível","durabilidade":null,"embalagens":[{"label":"3,6 L","rendimento":54.0,"rendimentoTexto":"Até 54 m² por demão"},{"label":"18 L","rendimento":270.0,"rendimentoTexto":"Até 270 m² por demão"}]},{"produto":"Selador Acrílico (Fachadas)","durabilidade":null,"embalagens":[{"label":"3,2 L","rendimento":26.0,"rendimentoTexto":"Até 26 m² por demão"},{"label":"16 L","rendimento":130.0,"rendimentoTexto":"Até 130 m² por demão"}]},{"produto":"Massa para Madeira (Fachadas)","durabilidade":null,"embalagens":[{"label":"1,5 kg","rendimento":3.0,"rendimentoTexto":"Até 3 m² por demão"}]},{"produto":"Multimassa Tapa-Tudo","durabilidade":null,"embalagens":[{"label":"","rendimento":null,"rendimentoTexto":"Rendimento variável conforme o tamanho e profundidade da imperfeição"}]},{"produto":"Removedor Premium","durabilidade":null,"embalagens":[{"label":"900 ml","rendimento":2.5,"rendimentoTexto":"Até 2,5 m² por camada"}]}];
+
+let products = [];
+
+function fmtBRL(v){
+  return v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+function fmtNum(v, dec){
+  return v.toLocaleString('pt-BR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+
+function populateProdutoSelect(){
+  const sel = document.getElementById('produtoSelect');
+  sel.innerHTML = catalog.map((c, i) => `<option value="${i}">${escapeHtml(c.produto)}</option>`).join('');
+  onProdutoChange();
+}
+
+function onProdutoChange(){
+  const idx = parseInt(document.getElementById('produtoSelect').value);
+  const embSel = document.getElementById('embalagemSelect');
+  const item = catalog[idx];
+  embSel.innerHTML = item.embalagens.map((e, i) => {
+    const rendTxt = e.rendimento !== null ? `${e.label ? e.label + ' — ' : ''}${e.rendimentoTexto}` : `${e.label ? e.label + ' — ' : ''}${e.rendimentoTexto}`;
+    return `<option value="${i}">${escapeHtml(rendTxt || '(única opção)')}</option>`;
+  }).join('');
+  onEmbalagemChange();
+}
+
+function onEmbalagemChange(){
+  const pIdx = parseInt(document.getElementById('produtoSelect').value);
+  const item = catalog[pIdx];
+  const out = document.getElementById('durabilidadeOut');
+  if(item.durabilidade !== null){
+    out.textContent = fmtNum(item.durabilidade,1) + (item.durabilidade === 1 ? ' ano' : ' anos');
+    out.classList.remove('na');
+  } else {
+    out.textContent = 'não aplicável';
+    out.classList.add('na');
+  }
+}
+
+function addProduct(){
+  const pIdx = parseInt(document.getElementById('produtoSelect').value);
+  const eIdx = parseInt(document.getElementById('embalagemSelect').value);
+  const valor = parseFloat(document.getElementById('valor').value);
+
+  const err = document.getElementById('err');
+  if(isNaN(pIdx) || isNaN(eIdx) || isNaN(valor) || valor <= 0){
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+
+  const catItem = catalog[pIdx];
+  const emb = catItem.embalagens[eIdx];
+
+  products.push({
+    id: Date.now(),
+    nome: catItem.produto,
+    embalagem: emb.label,
+    rendimento: emb.rendimento,
+    rendimentoTexto: emb.rendimentoTexto,
+    durabilidade: catItem.durabilidade,
+    valor
+  });
+
+  document.getElementById('valor').value = '';
+  document.getElementById('valor').focus();
+
+  render();
+}
+
+function removeProduct(id){
+  products = products.filter(p => p.id !== id);
+  render();
+}
+
+function render(){
+  const container = document.getElementById('items');
+  const count = document.getElementById('count');
+  const areaInput = parseFloat(document.getElementById('area').value);
+  const area = (!isNaN(areaInput) && areaInput > 0) ? areaInput : null;
+  container.innerHTML = '';
+
+  if(products.length === 0){
+    count.textContent = 'Nenhum produto adicionado ainda.';
+    container.innerHTML = '<div class="empty">Adicione ao menos um produto para ver a comparação.</div>';
+    return;
+  }
+
+  const withCost = products.map(p => {
+    const custoPorM2 = p.rendimento !== null ? p.valor / p.rendimento : null;
+    const custoPorM2Ano = (custoPorM2 !== null && p.durabilidade !== null) ? custoPorM2 / p.durabilidade : null;
+    const custoTotalObra = (area && custoPorM2 !== null) ? custoPorM2 * area : null;
+    return { ...p, custoPorM2, custoPorM2Ano, custoTotalObra };
+  });
+
+  const sortKey = p => p.custoPorM2Ano !== null ? p.custoPorM2Ano : Infinity;
+  withCost.sort((a,b) => sortKey(a) - sortKey(b));
+
+  const ranked = withCost.filter(p => p.custoPorM2Ano !== null);
+  const bestId = ranked.length ? ranked[0].id : null;
+  const worstId = (ranked.length > 1) ? ranked[ranked.length - 1].id : null;
+
+  count.textContent = (products.length === 1 ? '1 produto' : products.length + ' produtos')
+    + ' comparados'
+    + (ranked.length ? ' — ordenados do melhor para o pior custo por m² ao ano' : '')
+    + (area ? ` (obra de ${fmtNum(area,1)} m²).` : '.');
+
+  const table = document.createElement('div');
+  table.className = 'scroll-x';
+  table.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Rendimento</th>
+          <th>Durabilidade</th>
+          <th>Valor</th>
+          <th>Custo/m²</th>
+          <th>Custo/m²/ano</th>
+          ${area ? '<th>Custo total da obra</th>' : ''}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
+  const tbody = table.querySelector('tbody');
+
+  withCost.forEach(p => {
+    const tr = document.createElement('tr');
+    const classes = [];
+    if(p.id === bestId) classes.push('best');
+    if(p.id === worstId) classes.push('worst');
+    if(p.custoPorM2Ano === null) classes.push('na');
+    tr.className = classes.join(' ');
+
+    tr.innerHTML = `
+      <td>
+        <div class="prod-name">${escapeHtml(p.nome)}</div>
+        <div class="prod-pack">${escapeHtml(p.embalagem || '')}</div>
+        ${p.id === bestId ? '<span class="badge">Melhor custo-benefício</span>' : ''}
+        ${p.custoPorM2Ano === null ? '<span class="badge na">Sem durabilidade — não ranqueado</span>' : ''}
+      </td>
+      <td class="num">${p.rendimento !== null ? fmtNum(p.rendimento,1) + ' m²' : `<span class="muted">${escapeHtml(p.rendimentoTexto)}</span>`}</td>
+      <td class="num">${p.durabilidade !== null ? fmtNum(p.durabilidade,1) + (p.durabilidade === 1 ? ' ano' : ' anos') : '<span class="muted">não aplicável</span>'}</td>
+      <td class="num">${fmtBRL(p.valor)}</td>
+      <td class="num">${p.custoPorM2 !== null ? fmtBRL(p.custoPorM2) : '<span class="muted">—</span>'}</td>
+      <td class="num highlight">${p.custoPorM2Ano !== null ? fmtBRL(p.custoPorM2Ano) : '<span class="muted">não aplicável</span>'}</td>
+      ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}</td>` : ''}
+      <td><button class="del" onclick="removeProduct(${p.id})">Remover</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  container.appendChild(table);
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+populateProdutoSelect();
+render();
+</script>
+</body>
+</html>
