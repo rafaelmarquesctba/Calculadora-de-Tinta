@@ -132,6 +132,22 @@
   select:disabled{color:var(--ink-soft);background:#F3F3EF;}
   input:focus,select:focus{outline:none;border-color:var(--mustard);box-shadow:0 0 0 3px rgba(110,20,35,0.15);}
 
+  .surface-options{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+  .surface-option{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#FBFBF8;
+    font-size:13.5px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .surface-option input[type=radio]{width:auto;margin-top:3px;flex-shrink:0;}
+  .surface-option:has(input:checked){border-color:var(--mustard);box-shadow:0 0 0 3px rgba(110,20,35,0.15);}
+
   .formrow{
     display:grid;
     grid-template-columns:1.8fr 1.3fr 1fr 1fr auto;
@@ -310,14 +326,22 @@
       <input type="number" id="area" placeholder="Ex: 120" step="0.1" min="0" oninput="render()">
     </div>
     <div class="field">
-      <label for="perda">Percentual de perda (%)</label>
-      <input type="number" id="perda" placeholder="Ex: 10" step="0.1" min="0" max="95" oninput="render()">
+      <label>Tipo de superfície (perda de rendimento)</label>
       <small>Desconta do rendimento nominal — cobre respingo, diluição, textura da parede, retrabalho etc.</small>
-      <small>Considerar:<br>
-        10% em superfícies lisas<br>
-        20% em superfícies rugosas, como texturas de baixo relevo<br>
-        30% em casos de textura com alto relevo ou alta absorção, como texturas projetadas
-      </small>
+      <div class="surface-options">
+        <label class="surface-option">
+          <input type="radio" name="superficie" value="10" oninput="render()" onchange="render()">
+          <span>Superfície lisa <strong>— 10%</strong> menos rendimento</span>
+        </label>
+        <label class="surface-option">
+          <input type="radio" name="superficie" value="20" oninput="render()" onchange="render()">
+          <span>Superfície rugosa (textura de baixo relevo) <strong>— 20%</strong> menos rendimento</span>
+        </label>
+        <label class="surface-option">
+          <input type="radio" name="superficie" value="30" oninput="render()" onchange="render()">
+          <span>Alto relevo / alta absorção, ex: textura projetada <strong>— 30%</strong> menos rendimento</span>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -460,8 +484,8 @@ function render(){
   const count = document.getElementById('count');
   const areaInput = parseFloat(document.getElementById('area').value);
   const area = (!isNaN(areaInput) && areaInput > 0) ? areaInput : null;
-  const perdaInput = parseFloat(document.getElementById('perda').value);
-  const perdaPct = (!isNaN(perdaInput) && perdaInput > 0) ? Math.min(perdaInput, 95) : 0;
+  const superficieSelecionada = document.querySelector('input[name="superficie"]:checked');
+  const perdaPct = superficieSelecionada ? parseFloat(superficieSelecionada.value) : 0;
   const fatorPerda = 1 - (perdaPct / 100);
   container.innerHTML = '';
 
