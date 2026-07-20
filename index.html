@@ -320,13 +320,13 @@
 
   <div class="job-card">
     <h2>Dados da obra (opcional)</h2>
-    <p class="hint">Preencha para ver também o custo total da obra e ajustar o rendimento pela perda esperada de material.</p>
+    <p class="hint">Preencha para ver também o custo total da obra e ajustar o rendimento conforme o tipo de superfície.</p>
     <div class="field">
       <label for="area">Área a pintar (m²)</label>
       <input type="number" id="area" placeholder="Ex: 120" step="0.1" min="0" oninput="render()">
     </div>
     <div class="field">
-      <label>Tipo de superfície (perda de rendimento)</label>
+      <label>Tipo de superfície (ajuste de rendimento)</label>
       <small>Desconta do rendimento nominal — cobre respingo, diluição, textura da parede, retrabalho etc.</small>
       <div class="surface-options">
         <label class="surface-option">
@@ -485,8 +485,8 @@ function render(){
   const areaInput = parseFloat(document.getElementById('area').value);
   const area = (!isNaN(areaInput) && areaInput > 0) ? areaInput : null;
   const superficieSelecionada = document.querySelector('input[name="superficie"]:checked');
-  const perdaPct = superficieSelecionada ? parseFloat(superficieSelecionada.value) : 0;
-  const fatorPerda = 1 - (perdaPct / 100);
+  const ajustePct = superficieSelecionada ? parseFloat(superficieSelecionada.value) : 0;
+  const fatorAjuste = 1 - (ajustePct / 100);
   container.innerHTML = '';
 
   if(products.length === 0){
@@ -496,7 +496,7 @@ function render(){
   }
 
   const withCost = products.map(p => {
-    const rendimentoEfetivo = p.rendimento !== null ? p.rendimento * fatorPerda : null;
+    const rendimentoEfetivo = p.rendimento !== null ? p.rendimento * fatorAjuste : null;
     const custoPorM2 = rendimentoEfetivo !== null ? p.valor / rendimentoEfetivo : null;
     const custoPorM2Ano = (custoPorM2 !== null && p.durabilidade !== null) ? custoPorM2 / p.durabilidade : null;
     const custoTotalObra = (area && custoPorM2 !== null) ? custoPorM2 * area : null;
@@ -513,7 +513,7 @@ function render(){
   count.textContent = (products.length === 1 ? '1 produto' : products.length + ' produtos')
     + ' comparados'
     + (ranked.length ? ' — ordenados do melhor para o pior custo por m² ao ano' : '')
-    + (perdaPct > 0 ? ` · rendimento ajustado em ${fmtNum(perdaPct,1)}% de perda` : '')
+    + (ajustePct > 0 ? ` · rendimento ajustado em ${fmtNum(ajustePct,1)}%` : '')
     + (area ? ` (obra de ${fmtNum(area,1)} m²).` : '.');
 
   const table = document.createElement('div');
@@ -523,7 +523,7 @@ function render(){
       <thead>
         <tr>
           <th>Produto</th>
-          <th>Rendimento${perdaPct > 0 ? ' (com perda)' : ''}</th>
+          <th>Rendimento${ajustePct > 0 ? ' (ajustado)' : ''}</th>
           <th>Durabilidade Estimada</th>
           <th>Valor</th>
           <th>Custo/m²</th>
@@ -558,7 +558,7 @@ function render(){
         </div>
       </td>
       <td class="num">${p.rendimentoEfetivo !== null
-          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + (perdaPct > 0 ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
+          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + (ajustePct > 0 ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
           : `<span class="muted">${escapeHtml(p.rendimentoTexto)}</span>`}</td>
       <td class="num">${p.durabilidade !== null ? fmtNum(p.durabilidade,1) + (p.durabilidade === 1 ? ' ano' : ' anos') : '<span class="muted">não aplicável</span>'}</td>
       <td class="num">${fmtBRL(p.valor)}</td>
