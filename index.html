@@ -500,7 +500,8 @@ function render(){
     const custoPorM2 = rendimentoEfetivo !== null ? p.valor / rendimentoEfetivo : null;
     const custoPorM2Ano = (custoPorM2 !== null && p.durabilidade !== null) ? custoPorM2 / p.durabilidade : null;
     const custoTotalObra = (area && custoPorM2 !== null) ? custoPorM2 * area : null;
-    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra };
+    const quantidadeEmbalagens = (area && rendimentoEfetivo) ? Math.ceil(area / rendimentoEfetivo) : null;
+    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra, quantidadeEmbalagens };
   });
 
   const sortKey = p => p.custoPorM2Ano !== null ? p.custoPorM2Ano : Infinity;
@@ -528,6 +529,7 @@ function render(){
           <th>Valor</th>
           <th>Custo/m²</th>
           <th>Custo/m²/ano</th>
+          ${area ? '<th>Quantidade necessária</th>' : ''}
           ${area ? '<th>Custo total da obra</th>' : ''}
           <th></th>
         </tr>
@@ -564,6 +566,9 @@ function render(){
       <td class="num">${fmtBRL(p.valor)}</td>
       <td class="num">${p.custoPorM2 !== null ? fmtBRL(p.custoPorM2) : '<span class="muted">—</span>'}</td>
       <td class="num highlight">${p.custoPorM2Ano !== null ? fmtBRL(p.custoPorM2Ano) : '<span class="muted">não aplicável</span>'}</td>
+      ${area ? `<td class="num">${p.quantidadeEmbalagens !== null
+          ? fmtNum(p.quantidadeEmbalagens,0) + 'x' + (p.embalagem ? `<div class="prod-pack">${escapeHtml(p.embalagem)}</div>` : '')
+          : '<span class="muted">—</span>'}</td>` : ''}
       ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}</td>` : ''}
       <td><button class="del" onclick="removeProduct(${p.id})">Remover</button></td>
     `;
