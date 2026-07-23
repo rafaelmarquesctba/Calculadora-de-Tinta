@@ -431,38 +431,48 @@ function getCatalogItemByNome(nome){
   return catalog.find(c => c.produto === nome) || null;
 }
 
-// Recomenda a combinação de embalagens (do maior para o menor rendimento)
-// que cobre a área necessária com o mínimo de sobra possível.
-function calcularMixEmbalagens(nome, areaNecessaria, fatorAjuste){
-  const item = getCatalogItemByNome(nome);
-  if(!item) return null;
+// Sugere completar o restante da área (depois de usar a embalagem já selecionada
+// o máximo de vezes possível) com embalagens menores (3,6 L / 900 ml), em vez de
+// arredondar para mais uma unidade inteira da embalagem selecionada.
+function calcularSugestaoComplementar(p, areaNecessaria, fatorAjuste){
+  const item = getCatalogItemByNome(p.nome);
+  if(!item || !p.rendimentoEfetivo) return null;
 
-  const opcoes = item.embalagens
+  const qtyFloor = Math.floor(areaNecessaria / p.rendimentoEfetivo);
+  const restante = areaNecessaria - (qtyFloor * p.rendimentoEfetivo);
+  if(restante <= 0.01) return null; // a embalagem selecionada já cobre a área exatamente
+
+  const opcoesMenores = item.embalagens
     .filter(e => e.rendimento !== null && e.rendimento > 0)
+    .filter(e => e.label !== p.embalagem)
     .filter(e => /3,6\s*l\b/i.test(e.label) || /900\s*ml\b/i.test(e.label))
     .map(e => ({ label: e.label, rendimento: e.rendimento * fatorAjuste }))
     .sort((a,b) => b.rendimento - a.rendimento);
-  if(opcoes.length === 0) return null;
+  if(opcoesMenores.length === 0) return null;
 
-  let restante = areaNecessaria;
-  const mix = [];
-  opcoes.forEach((opt, i) => {
-    const isUltima = i === opcoes.length - 1;
-    const qty = isUltima ? Math.ceil(restante / opt.rendimento) : Math.floor(restante / opt.rendimento);
+  let restanteCobrir = restante;
+  const complemento = [];
+  opcoesMenores.forEach((opt, i) => {
+    const isUltima = i === opcoesMenores.length - 1;
+    const qty = isUltima ? Math.ceil(restanteCobrir / opt.rendimento) : Math.floor(restanteCobrir / opt.rendimento);
     if(qty > 0){
-      mix.push({ label: opt.label, qty, rendimento: opt.rendimento });
-      restante -= qty * opt.rendimento;
+      complemento.push({ label: opt.label, qty, rendimento: opt.rendimento });
+      restanteCobrir -= qty * opt.rendimento;
     }
   });
+  if(complemento.length === 0) return null;
 
-  if(restante > 0.01){
-    const menor = opcoes[opcoes.length - 1];
-    const existente = mix.find(m => m.label === menor.label);
-    if(existente) existente.qty += 1;
-    else mix.push({ label: menor.label, qty: 1, rendimento: menor.rendimento });
-  }
+  const desperdicioComExtra = (qtyFloor + 1) * p.rendimentoEfetivo - areaNecessaria;
+  const coberturaComplemento = complemento.reduce((sum, m) => sum + m.qty * m.rendimento, 0);
+  const desperdicioComplemento = (qtyFloor * p.rendimentoEfetivo + coberturaComplemento) - areaNecessaria;
 
-  return mix;
+  // só sugere se realmente reduzir o desperdício de material comparado a comprar mais uma unidade inteira
+  if(desperdicioComplemento >= desperdicioComExtra - 0.01) return null;
+
+  const partes = [];
+  if(qtyFloor > 0) partes.push(`${fmtNum(qtyFloor,0)}x ${p.embalagem}`);
+  complemento.forEach(m => partes.push(`${fmtNum(m.qty,0)}x ${m.label}`));
+  return partes.join(' + ');
 }
 
 // Extrai o volume/peso numérico do rótulo da embalagem (ex: "800 ml", "3,2 L", "5 kg")
@@ -590,25 +600,17 @@ function render(){
     // Embalagens são indivisíveis: arredonda para cima a quantidade da embalagem selecionada
     const quantidadeEmbalagensSelecionada = (area && rendimentoEfetivo) ? Math.ceil(area / rendimentoEfetivo) : null;
     const custoTotalObra = (quantidadeEmbalagensSelecionada !== null) ? quantidadeEmbalagensSelecionada * p.valor : null;
-    const coberturaSelecionada = (quantidadeEmbalagensSelecionada !== null) ? quantidadeEmbalagensSelecionada * rendimentoEfetivo : null;
 
     const volumeEmbalagem = parseVolumeEmbalagem(p.embalagem);
     const quantidadeNecessaria = (area && rendimentoEfetivo && volumeEmbalagem)
       ? (area / rendimentoEfetivo) * volumeEmbalagem.valor
       : null;
 
-    // Sugestão: combinar embalagens de tamanhos diferentes para reduzir a sobra de material
-    let sugestaoMix = null;
-    if(area){
-      const mix = calcularMixEmbalagens(p.nome, area, fatorAjuste);
-      if(mix && mix.length){
-        const coberturaMix = mix.reduce((sum, m) => sum + m.qty * m.rendimento, 0);
-        const ehDiferente = mix.length > 1 || mix[0].label !== p.embalagem;
-        if(ehDiferente && coberturaMix < coberturaSelecionada - 0.01){
-          sugestaoMix = mix.map(m => `${fmtNum(m.qty,0)}x ${m.label}`).join(' + ');
-        }
-      }
-    }
+    // Sugestão: completar o restante da área com embalagens menores (3,6 L / 900 ml)
+    // em vez de arredondar para mais uma unidade inteira da embalagem selecionada
+    const sugestaoMix = area
+      ? calcularSugestaoComplementar({ ...p, rendimentoEfetivo }, area, fatorAjuste)
+      : null;
 
     return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra, quantidadeNecessaria, unidadeNecessaria: volumeEmbalagem ? volumeEmbalagem.unidade : null, sugestaoMix };
   });
