@@ -439,6 +439,7 @@ function calcularMixEmbalagens(nome, areaNecessaria, fatorAjuste){
 
   const opcoes = item.embalagens
     .filter(e => e.rendimento !== null && e.rendimento > 0)
+    .filter(e => /3,6\s*l\b/i.test(e.label) || /900\s*ml\b/i.test(e.label))
     .map(e => ({ label: e.label, rendimento: e.rendimento * fatorAjuste }))
     .sort((a,b) => b.rendimento - a.rendimento);
   if(opcoes.length === 0) return null;
@@ -640,6 +641,7 @@ function render(){
           <th>Custo/m²/ano</th>
           ${area ? '<th>Quantidade necessária</th>' : ''}
           ${area ? '<th>Custo total de produto</th>' : ''}
+          ${area ? '<th>Observação</th>' : ''}
           <th></th>
         </tr>
       </thead>
@@ -678,7 +680,8 @@ function render(){
       ${area ? `<td class="num">${p.quantidadeNecessaria !== null
           ? fmtNum(p.quantidadeNecessaria,1) + ' ' + p.unidadeNecessaria
           : '<span class="muted">—</span>'}</td>` : ''}
-      ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}${p.sugestaoMix ? `<div class="mix-tip">💡 Para melhorar o custo de material, sugerimos usar ${escapeHtml(p.sugestaoMix)}, considerando o rendimento de cada embalagem.</div>` : ''}</td>` : ''}
+      ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}</td>` : ''}
+      ${area ? `<td>${p.sugestaoMix ? `<div class="mix-tip">💡 Para melhorar o custo de material, sugerimos usar ${escapeHtml(p.sugestaoMix)}, considerando o rendimento de cada embalagem.</div>` : '<span class="muted">—</span>'}</td>` : ''}
       <td><button class="del" onclick="removeProduct(${p.id})">Remover</button></td>
     `;
     tbody.appendChild(tr);
