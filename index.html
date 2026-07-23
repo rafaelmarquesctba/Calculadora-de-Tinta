@@ -298,7 +298,12 @@
     border-radius:100px;
     white-space:nowrap;
     display:inline-block;
-    margin-top:3px;
+    animation:pulseBadge 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseBadge{
+    0%, 100%{background:var(--teal-bg);box-shadow:0 0 0 0 rgba(184,137,43,0.45);}
+    50%{background:var(--teal);color:#fff;box-shadow:0 0 0 4px rgba(184,137,43,0);}
+  }    margin-top:3px;
   }
   .badge.na{background:var(--brick-bg);color:var(--brick-dark);}
   .del{
@@ -501,7 +506,7 @@ function render(){
   const ajustePct = superficieSelecionada ? parseFloat(superficieSelecionada.value) : 0;
   const demaosSelecionado = document.querySelector('input[name="demaos"]:checked');
   const numDemaos = demaosSelecionado ? parseInt(demaosSelecionado.value) : 2;
-  const fatorAjuste = (1 - (ajustePct / 100)) / numDemaos;
+  const fatorAjuste = (1 - (ajustePct / 100)) * 3 / numDemaos;
   container.innerHTML = '';
 
   if(products.length === 0){
@@ -540,7 +545,7 @@ function render(){
       <thead>
         <tr>
           <th>Produto</th>
-          <th>Rendimento${(ajustePct > 0 || numDemaos > 1) ? ' (ajustado)' : ''}</th>
+          <th>Rendimento${(ajustePct > 0 || numDemaos !== 3) ? ' (ajustado)' : ''}</th>
           <th>Durabilidade Estimada</th>
           <th>Valor</th>
           <th>Custo/m²</th>
@@ -576,7 +581,7 @@ function render(){
         </div>
       </td>
       <td class="num">${p.rendimentoEfetivo !== null
-          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + ((ajustePct > 0 || numDemaos > 1) ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
+          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + ((ajustePct > 0 || numDemaos !== 3) ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
           : `<span class="muted">${escapeHtml(p.rendimentoTexto)}</span>`}</td>
       <td class="num">${p.durabilidade !== null ? fmtNum(p.durabilidade,1) + (p.durabilidade === 1 ? ' ano' : ' anos') : '<span class="muted">não aplicável</span>'}</td>
       <td class="num">${fmtBRL(p.valor)}</td>
