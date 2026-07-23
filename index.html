@@ -432,9 +432,12 @@ function getCatalogItemByNome(nome){
 }
 
 // Sugere completar o restante da área (depois de usar a embalagem já selecionada
-// o máximo de vezes possível) com embalagens menores (3,6 L / 900 ml), em vez de
+// completar o restante da área (depois de usar a embalagem já selecionada
+// o máximo de vezes possível) com a embalagem de 3,6 L, em vez de
 // arredondar para mais uma unidade inteira da embalagem selecionada.
 function calcularSugestaoComplementar(p, areaNecessaria, fatorAjuste){
+  if(!/18\s*l\b/i.test(p.embalagem || '')) return null; // sugestão só se aplica à embalagem de 18 L
+
   const item = getCatalogItemByNome(p.nome);
   if(!item || !p.rendimentoEfetivo) return null;
 
@@ -445,7 +448,7 @@ function calcularSugestaoComplementar(p, areaNecessaria, fatorAjuste){
   const opcoesMenores = item.embalagens
     .filter(e => e.rendimento !== null && e.rendimento > 0)
     .filter(e => e.label !== p.embalagem)
-    .filter(e => /3,6\s*l\b/i.test(e.label) || /900\s*ml\b/i.test(e.label))
+    .filter(e => /3,6\s*l\b/i.test(e.label))
     .map(e => ({ label: e.label, rendimento: e.rendimento * fatorAjuste }))
     .sort((a,b) => b.rendimento - a.rendimento);
   if(opcoesMenores.length === 0) return null;
@@ -606,7 +609,7 @@ function render(){
       ? (area / rendimentoEfetivo) * volumeEmbalagem.valor
       : null;
 
-    // Sugestão: completar o restante da área com embalagens menores (3,6 L / 900 ml)
+    // Sugestão: completar o restante da área com embalagem de 3,6 L
     // em vez de arredondar para mais uma unidade inteira da embalagem selecionada
     const sugestaoMix = area
       ? calcularSugestaoComplementar({ ...p, rendimentoEfetivo }, area, fatorAjuste)
