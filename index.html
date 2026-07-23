@@ -607,7 +607,7 @@ function render(){
       <td class="num">${p.custoPorM2 !== null ? fmtBRL(p.custoPorM2) : '<span class="muted">—</span>'}</td>
       <td class="num highlight">${p.custoPorM2Ano !== null ? fmtBRL(p.custoPorM2Ano) : '<span class="muted">não aplicável</span>'}</td>
       ${area ? `<td class="num">${p.quantidadeNecessaria !== null
-          ? fmtNum(p.quantidadeNecessaria,2) + ' ' + p.unidadeNecessaria + (p.embalagem ? `<div class="prod-pack">embalagem: ${escapeHtml(p.embalagem)}</div>` : '')
+          ? fmtNum(p.quantidadeNecessaria,1) + ' ' + p.unidadeNecessaria
           : '<span class="muted">—</span>'}</td>` : ''}
       ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}</td>` : ''}
       <td><button class="del" onclick="removeProduct(${p.id})">Remover</button></td>
