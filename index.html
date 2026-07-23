@@ -284,6 +284,19 @@
   }
   .prod-name{font-family:'Fraunces',serif;font-weight:600;font-size:14.5px;}
   .prod-pack{color:var(--ink-soft);font-size:12px;}
+  .mix-tip{
+    margin-top:6px;
+    padding:6px 9px;
+    background:var(--teal-bg);
+    color:var(--teal-dark);
+    border-radius:6px;
+    font-size:11.5px;
+    font-family:'Inter',sans-serif;
+    line-height:1.4;
+    text-align:left;
+    white-space:normal;
+    max-width:240px;
+  }
   .num{font-family:'JetBrains Mono',monospace;}
   .muted{color:var(--ink-soft);}
   .highlight{font-weight:600;color:var(--teal-dark);}
@@ -414,6 +427,43 @@ function fmtNum(v, dec){
   return v.toLocaleString('pt-BR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
 }
 
+function getCatalogItemByNome(nome){
+  return catalog.find(c => c.produto === nome) || null;
+}
+
+// Recomenda a combinação de embalagens (do maior para o menor rendimento)
+// que cobre a área necessária com o mínimo de sobra possível.
+function calcularMixEmbalagens(nome, areaNecessaria, fatorAjuste){
+  const item = getCatalogItemByNome(nome);
+  if(!item) return null;
+
+  const opcoes = item.embalagens
+    .filter(e => e.rendimento !== null && e.rendimento > 0)
+    .map(e => ({ label: e.label, rendimento: e.rendimento * fatorAjuste }))
+    .sort((a,b) => b.rendimento - a.rendimento);
+  if(opcoes.length === 0) return null;
+
+  let restante = areaNecessaria;
+  const mix = [];
+  opcoes.forEach((opt, i) => {
+    const isUltima = i === opcoes.length - 1;
+    const qty = isUltima ? Math.ceil(restante / opt.rendimento) : Math.floor(restante / opt.rendimento);
+    if(qty > 0){
+      mix.push({ label: opt.label, qty, rendimento: opt.rendimento });
+      restante -= qty * opt.rendimento;
+    }
+  });
+
+  if(restante > 0.01){
+    const menor = opcoes[opcoes.length - 1];
+    const existente = mix.find(m => m.label === menor.label);
+    if(existente) existente.qty += 1;
+    else mix.push({ label: menor.label, qty: 1, rendimento: menor.rendimento });
+  }
+
+  return mix;
+}
+
 // Extrai o volume/peso numérico do rótulo da embalagem (ex: "800 ml", "3,2 L", "5 kg")
 // e normaliza para litros (L) ou quilos (kg).
 function parseVolumeEmbalagem(label){
@@ -535,12 +585,31 @@ function render(){
     const rendimentoEfetivo = p.rendimento !== null ? p.rendimento * fatorAjuste : null;
     const custoPorM2 = rendimentoEfetivo !== null ? p.valor / rendimentoEfetivo : null;
     const custoPorM2Ano = (custoPorM2 !== null && p.durabilidade !== null) ? custoPorM2 / p.durabilidade : null;
-    const custoTotalObra = (area && custoPorM2 !== null) ? custoPorM2 * area : null;
+
+    // Embalagens são indivisíveis: arredonda para cima a quantidade da embalagem selecionada
+    const quantidadeEmbalagensSelecionada = (area && rendimentoEfetivo) ? Math.ceil(area / rendimentoEfetivo) : null;
+    const custoTotalObra = (quantidadeEmbalagensSelecionada !== null) ? quantidadeEmbalagensSelecionada * p.valor : null;
+    const coberturaSelecionada = (quantidadeEmbalagensSelecionada !== null) ? quantidadeEmbalagensSelecionada * rendimentoEfetivo : null;
+
     const volumeEmbalagem = parseVolumeEmbalagem(p.embalagem);
     const quantidadeNecessaria = (area && rendimentoEfetivo && volumeEmbalagem)
       ? (area / rendimentoEfetivo) * volumeEmbalagem.valor
       : null;
-    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra, quantidadeNecessaria, unidadeNecessaria: volumeEmbalagem ? volumeEmbalagem.unidade : null };
+
+    // Sugestão: combinar embalagens de tamanhos diferentes para reduzir a sobra de material
+    let sugestaoMix = null;
+    if(area){
+      const mix = calcularMixEmbalagens(p.nome, area, fatorAjuste);
+      if(mix && mix.length){
+        const coberturaMix = mix.reduce((sum, m) => sum + m.qty * m.rendimento, 0);
+        const ehDiferente = mix.length > 1 || mix[0].label !== p.embalagem;
+        if(ehDiferente && coberturaMix < coberturaSelecionada - 0.01){
+          sugestaoMix = mix.map(m => `${fmtNum(m.qty,0)}x ${m.label}`).join(' + ');
+        }
+      }
+    }
+
+    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra, quantidadeNecessaria, unidadeNecessaria: volumeEmbalagem ? volumeEmbalagem.unidade : null, sugestaoMix };
   });
 
   const sortKey = p => p.custoPorM2Ano !== null ? p.custoPorM2Ano : Infinity;
@@ -609,7 +678,7 @@ function render(){
       ${area ? `<td class="num">${p.quantidadeNecessaria !== null
           ? fmtNum(p.quantidadeNecessaria,1) + ' ' + p.unidadeNecessaria
           : '<span class="muted">—</span>'}</td>` : ''}
-      ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}</td>` : ''}
+      ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}${p.sugestaoMix ? `<div class="mix-tip">💡 Para melhorar o custo de material, sugerimos usar ${escapeHtml(p.sugestaoMix)}, considerando o rendimento de cada embalagem.</div>` : ''}</td>` : ''}
       <td><button class="del" onclick="removeProduct(${p.id})">Remover</button></td>
     `;
     tbody.appendChild(tr);
