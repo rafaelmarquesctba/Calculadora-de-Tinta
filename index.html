@@ -343,6 +343,19 @@
         </label>
       </div>
     </div>
+    <div class="field">
+      <label>Número de demãos</label>
+      <div class="surface-options">
+        <label class="surface-option">
+          <input type="radio" name="demaos" value="2" checked oninput="render()" onchange="render()">
+          <span>2 demãos</span>
+        </label>
+        <label class="surface-option">
+          <input type="radio" name="demaos" value="3" oninput="render()" onchange="render()">
+          <span>3 demãos</span>
+        </label>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -486,7 +499,9 @@ function render(){
   const area = (!isNaN(areaInput) && areaInput > 0) ? areaInput : null;
   const superficieSelecionada = document.querySelector('input[name="superficie"]:checked');
   const ajustePct = superficieSelecionada ? parseFloat(superficieSelecionada.value) : 0;
-  const fatorAjuste = 1 - (ajustePct / 100);
+  const demaosSelecionado = document.querySelector('input[name="demaos"]:checked');
+  const numDemaos = demaosSelecionado ? parseInt(demaosSelecionado.value) : 2;
+  const fatorAjuste = (1 - (ajustePct / 100)) / numDemaos;
   container.innerHTML = '';
 
   if(products.length === 0){
@@ -515,6 +530,7 @@ function render(){
     + ' comparados'
     + (ranked.length ? ' — ordenados do melhor para o pior custo por m² ao ano' : '')
     + (ajustePct > 0 ? ` · rendimento ajustado em ${fmtNum(ajustePct,1)}%` : '')
+    + (numDemaos > 1 ? ` · ${numDemaos} demãos` : '')
     + (area ? ` (obra de ${fmtNum(area,1)} m²).` : '.');
 
   const table = document.createElement('div');
@@ -524,7 +540,7 @@ function render(){
       <thead>
         <tr>
           <th>Produto</th>
-          <th>Rendimento${ajustePct > 0 ? ' (ajustado)' : ''}</th>
+          <th>Rendimento${(ajustePct > 0 || numDemaos > 1) ? ' (ajustado)' : ''}</th>
           <th>Durabilidade Estimada</th>
           <th>Valor</th>
           <th>Custo/m²</th>
@@ -560,7 +576,7 @@ function render(){
         </div>
       </td>
       <td class="num">${p.rendimentoEfetivo !== null
-          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + (ajustePct > 0 ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
+          ? fmtNum(p.rendimentoEfetivo,1) + ' m²' + ((ajustePct > 0 || numDemaos > 1) ? `<div class="prod-pack">nominal: ${fmtNum(p.rendimento,1)} m²</div>` : '')
           : `<span class="muted">${escapeHtml(p.rendimentoTexto)}</span>`}</td>
       <td class="num">${p.durabilidade !== null ? fmtNum(p.durabilidade,1) + (p.durabilidade === 1 ? ' ano' : ' anos') : '<span class="muted">não aplicável</span>'}</td>
       <td class="num">${fmtBRL(p.valor)}</td>
