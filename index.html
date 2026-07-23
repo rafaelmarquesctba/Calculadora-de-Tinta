@@ -414,42 +414,20 @@ function fmtNum(v, dec){
   return v.toLocaleString('pt-BR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
 }
 
-function getCatalogItemByNome(nome){
-  return catalog.find(c => c.produto === nome) || null;
-}
+// Extrai o volume/peso numérico do rótulo da embalagem (ex: "800 ml", "3,2 L", "5 kg")
+// e normaliza para litros (L) ou quilos (kg).
+function parseVolumeEmbalagem(label){
+  if(!label) return null;
+  const match = label.match(/([\d.,]+)\s*(ml|l|kg|g)\b/i);
+  if(!match) return null;
+  let valor = parseFloat(match[1].replace(',', '.'));
+  let unidade = match[2].toLowerCase();
+  if(isNaN(valor)) return null;
+  if(unidade === 'ml'){ valor = valor / 1000; unidade = 'L'; }
+  else if(unidade === 'g'){ valor = valor / 1000; unidade = 'kg'; }
+  else if(unidade === 'l'){ unidade = 'L'; }
+  return { valor, unidade };
 
-// Recomenda a combinação de embalagens (do maior para o menor rendimento)
-// que cobre a área necessária com o mínimo de sobra possível.
-function calcularMixEmbalagens(nome, areaNecessaria, fatorAjuste){
-  const item = getCatalogItemByNome(nome);
-  if(!item) return null;
-
-  const opcoes = item.embalagens
-    .filter(e => e.rendimento !== null && e.rendimento > 0)
-    .map(e => ({ label: e.label, rendimento: e.rendimento * fatorAjuste }))
-    .sort((a,b) => b.rendimento - a.rendimento);
-  if(opcoes.length === 0) return null;
-
-  let restante = areaNecessaria;
-  const mix = [];
-  opcoes.forEach((opt, i) => {
-    const isUltima = i === opcoes.length - 1;
-    const qty = isUltima ? Math.ceil(restante / opt.rendimento) : Math.floor(restante / opt.rendimento);
-    if(qty > 0){
-      mix.push({ label: opt.label, qty });
-      restante -= qty * opt.rendimento;
-    }
-  });
-
-  // segurança: se ainda sobrar área por conta de arredondamento, soma +1 da menor embalagem
-  if(restante > 0.01){
-    const menor = opcoes[opcoes.length - 1];
-    const existente = mix.find(m => m.label === menor.label);
-    if(existente) existente.qty += 1;
-    else mix.push({ label: menor.label, qty: 1 });
-  }
-
-  return mix;
 }
 
 function populateProdutoSelect(){
@@ -558,8 +536,11 @@ function render(){
     const custoPorM2 = rendimentoEfetivo !== null ? p.valor / rendimentoEfetivo : null;
     const custoPorM2Ano = (custoPorM2 !== null && p.durabilidade !== null) ? custoPorM2 / p.durabilidade : null;
     const custoTotalObra = (area && custoPorM2 !== null) ? custoPorM2 * area : null;
-    const mixEmbalagens = area ? calcularMixEmbalagens(p.nome, area, fatorAjuste) : null;
-    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra, mixEmbalagens };
+    const volumeEmbalagem = parseVolumeEmbalagem(p.embalagem);
+    const quantidadeNecessaria = (area && rendimentoEfetivo && volumeEmbalagem)
+      ? (area / rendimentoEfetivo) * volumeEmbalagem.valor
+      : null;
+    return { ...p, rendimentoEfetivo, custoPorM2, custoPorM2Ano, custoTotalObra, quantidadeNecessaria, unidadeNecessaria: volumeEmbalagem ? volumeEmbalagem.unidade : null };
   });
 
   const sortKey = p => p.custoPorM2Ano !== null ? p.custoPorM2Ano : Infinity;
@@ -625,8 +606,8 @@ function render(){
       <td class="num">${fmtBRL(p.valor)}</td>
       <td class="num">${p.custoPorM2 !== null ? fmtBRL(p.custoPorM2) : '<span class="muted">—</span>'}</td>
       <td class="num highlight">${p.custoPorM2Ano !== null ? fmtBRL(p.custoPorM2Ano) : '<span class="muted">não aplicável</span>'}</td>
-      ${area ? `<td class="num">${p.mixEmbalagens && p.mixEmbalagens.length
-          ? p.mixEmbalagens.map(m => `${fmtNum(m.qty,0)}x <span class="prod-pack">${escapeHtml(m.label)}</span>`).join('<br>')
+      ${area ? `<td class="num">${p.quantidadeNecessaria !== null
+          ? fmtNum(p.quantidadeNecessaria,2) + ' ' + p.unidadeNecessaria + (p.embalagem ? `<div class="prod-pack">embalagem: ${escapeHtml(p.embalagem)}</div>` : '')
           : '<span class="muted">—</span>'}</td>` : ''}
       ${area ? `<td class="num">${p.custoTotalObra !== null ? fmtBRL(p.custoTotalObra) : '<span class="muted">—</span>'}</td>` : ''}
       <td><button class="del" onclick="removeProduct(${p.id})">Remover</button></td>
